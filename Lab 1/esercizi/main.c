@@ -11,7 +11,13 @@ int WINAPI WinMain(
     HINSTANCE hInstance,        // istanza specifica dell'applicazione
     HINSTANCE hPrevInstance,    // sempre NULL
     PSTR szCmdLine,             // puntatore a stringa
-    int iCmdShow
+    int iCmdShow                // quasi sempre 0
 ) {
+    printf("Hello world!\n");
+    MessageBox(NULL,
+                "Questo è un dialogo!",
+                "Titolo",
+                MB_OK | MB_ICONINFORMATION);
+
     return 0;
 }

@@ -6,12 +6,43 @@
 //     printf("Hello world!\n");
 // }
 
+// funzione per gestire i messaggi
 LRESULT CALLBACK LaMiaProcedura(
     HWND hwnd,
     UINT message,
     WPARAM wParam,
     LPARAM lParam
 ){
+    switch(message) {
+        case WM_CREATE:
+            // qui creo le eventuali sottofinestre
+            return 0;  // o break;
+
+        case WM_PAINT:  // quando la finestra ritorna in primo piano o viene ingrandita,
+                        // deve "ridisegnare" sè stessa
+            {
+                PAINTSTRUCT ps;     // è la tavolozza dentro cui memorizzo pennello, colore ecc.
+                HDC hdc = BeginPaint(hwnd, &ps);  // hdc è la tela
+                // BeginPaint() è una specie di semaforo
+
+                // Qui dentro si può disegnare
+                RECT miorettangolo;
+                miorettangolo.left = 0;
+                miorettangolo.top = 0;
+                miorettangolo.bottom = 100;
+                miorettangolo.right = 200;
+                FillRect(hdc, &miorettangolo, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+                EndPaint(hwnd, &ps);
+            }
+            return 0;
+
+        // quando mi arriva un messaggio di distruzione della finestra,
+        // l'intera applicazione deve terminare
+        case WM_DESTROY:
+            PostQuitMessage(0);     // exit code 0
+            break;
+    }
     // ignoro i messaggi
     return DefWindowProc(hwnd, message, wParam, lParam);
 }
@@ -40,14 +71,13 @@ int WINAPI WinMain(
     wndclass.hInstance = hInstance;
     wndclass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     wndclass.hCursor = LoadCursor(NULL, IDC_ARROW); // aspetto del puntatore del mouse
-    wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    wndclass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wndclass.lpszMenuName = NULL;
     wndclass.lpszClassName = TEXT("LaMiaClasse");
 
     RegisterClass(&wndclass); // passaggio per puntatore con &
 
     // creazione finestra
-    // arrivata a video minuti 1:15:00
     HWND hfinestra = CreateWindow(
         TEXT("LaMiaClasse"),
         TEXT("Ciao mondo!"),
@@ -62,12 +92,14 @@ int WINAPI WinMain(
         NULL
     );
     ShowWindow(hfinestra, SW_NORMAL);
+    // la finestra inizia a ricevere messaggi (es. click, eventi di sistema, ..)
 
-    // Message pump - ottiene i messaggi dalla coda e li dispatcha
+    // Message pump (busy loop/wait) - ottiene i messaggi dalla coda e li dispatcha
+    // loop infinito e bloccante per rimanere in attesa di eventuali eventi
     MSG msg;
     while(GetMessage(&msg, NULL, 0, 0)) {
         DispatchMessage(&msg);
     }
 
-    return 0;
+    return msg.wParam;
 }

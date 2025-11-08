@@ -1,5 +1,9 @@
 #include <windows.h>            // include le Win32
 #include <stdio.h>
+#include <windowsx.h>
+
+int lastX, lastY;
+int vertPPI, horPPI;
 
 // main normale
 // int main(int argc, char *argv[]) {
@@ -14,8 +18,13 @@ LRESULT CALLBACK LaMiaProcedura(
     LPARAM lParam
 ){
     switch(message) {
-        case WM_CREATE:
-            // qui creo le eventuali sottofinestre
+        case WM_CREATE: // qui creo le eventuali sottofinestre
+            {
+                // provo a calcolare PPI (pixel per inch) dello schermo
+                HDC hdc = GetDC(hwnd);
+                vertPPI = GetDeviceCaps(hdc, LOGPIXELSX);
+                horPPI = GetDeviceCaps(hdc, LOGPIXELSY);
+            }
             return 0;  // o break;
 
         case WM_PAINT:  // quando la finestra ritorna in primo piano o viene ingrandita,
@@ -26,17 +35,47 @@ LRESULT CALLBACK LaMiaProcedura(
                 // BeginPaint() è una specie di semaforo
 
                 // Qui dentro si può disegnare
+                RECT clientRect;
+                GetClientRect(hwnd, &clientRect);
+
                 RECT miorettangolo;
-                miorettangolo.left = 0;
-                miorettangolo.top = 0;
-                miorettangolo.bottom = 100;
-                miorettangolo.right = 200;
+                miorettangolo.left = clientRect.left + 10;
+                miorettangolo.top = clientRect.top + 10;
+                miorettangolo.bottom = clientRect.bottom - 10;
+                miorettangolo.right = clientRect.right - 10;
                 FillRect(hdc, &miorettangolo, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+                TCHAR buffer[2048];
+                wsprintf(buffer, TEXT("Client RECT: %dx%d\nPPI dello schermo: h -> %d, v -> %d\nUltimo click: (%d, %d)"),
+                        clientRect.right, clientRect.bottom,
+                        horPPI, vertPPI,
+                        lastX, lastY);
+
+                RECT misura;
+                ZeroMemory(&misura, sizeof(RECT));
+                DrawText(hdc, buffer, -1, &misura, DT_CENTER | DT_CALCRECT | DT_END_ELLIPSIS);
+
+                RECT destinazione;
+                destinazione.top = 10 + ((miorettangolo.bottom - miorettangolo.top) / 2) - (misura.bottom / 2);
+                destinazione.right = miorettangolo.right;
+                destinazione.left = miorettangolo.left;
+                destinazione.bottom = miorettangolo.bottom;
+                DrawText(hdc, buffer, -1, &destinazione, DT_CENTER |  DT_END_ELLIPSIS);
 
                 EndPaint(hwnd, &ps);
             }
             return 0;
 
+        case WM_LBUTTONUP:
+            // voglio riconoscere dove è stato cliccato
+            {
+                lastX = GET_X_LPARAM(lParam);
+                lastY = GET_Y_LPARAM(lParam);
+
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+            break;
+        
         // quando mi arriva un messaggio di distruzione della finestra,
         // l'intera applicazione deve terminare
         case WM_DESTROY:
@@ -64,7 +103,7 @@ int WINAPI WinMain(
     
     // definisco classe di finestra
     WNDCLASS wndclass;
-    wndclass.style = 0;     // stile (insieme di comportamenti) di questa classe di finestre
+    wndclass.style = CS_HREDRAW | CS_VREDRAW;     // stile (insieme di comportamenti) di questa classe di finestre
     wndclass.lpfnWndProc = LaMiaProcedura; // campo più importante; puntatore a funzione
     wndclass.cbClsExtra = 0;
     wndclass.cbWndExtra = 0;
